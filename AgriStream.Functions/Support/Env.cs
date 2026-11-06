@@ -9,10 +9,10 @@ namespace AgriStream.Functions.Support
     {
         public static string StorageConn => Get("AzureWebJobsStorage");
         public static string SqlConn => Get("SqlConnectionString");
-        public static string TelemetryTable => Get("TelemetryTableName", "Telemetry");
+        public static string TelemetryTable => Get("TelemetryTableName", "telemetryd");
         public static string AuditTable => Get("AuditTableName", "ImageAudit");
         public static string EventsTable => Get("EventsTableName", "IrrigationEvents");
-        public static string QueueName => Get("QueueName", "irrigation-commands");
+        public static string QueueName => Get("QueueName", "irrigation-queue");
 
         public static string Get(string name, string fallback = "") =>
             Environment.GetEnvironmentVariable(name) ?? fallback;

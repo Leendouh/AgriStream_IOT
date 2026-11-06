@@ -1,13 +1,13 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=agristreamst10381088;AccountKey=YOUR_ACCOUNT_KEY;EndpointSuffix=core.windows.net",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "SqlConnectionString": "Server=(localdb)\\MSSQLLocalDB;Database=AgriStreamDb;Trusted_Connection=True;TrustServerCertificate=True",
-    "TelemetryTableName": "Telemetry",
+    "SqlConnectionString": "Server=tcp:agristream111.database.windows.net,1433;Initial Catalog=agristream;Persist Security Info=False;User ID=YOUR_SQL_ADMIN;Password=YOUR_SQL_PASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+    "TelemetryTableName": "telemetryd",
     "AuditTableName": "ImageAudit",
     "EventsTableName": "IrrigationEvents",
-    "QueueName": "irrigation-commands",
+    "QueueName": "irrigation-queue",
     "BlobContainerName": "drone-images"
   }
 }

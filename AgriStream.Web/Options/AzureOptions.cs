@@ -18,7 +18,7 @@ namespace AgriStream.Web.Options
         public string BlobContainerName { get; set; } = "drone-images";
 
         /// <summary>Table that stores high-frequency sensor telemetry.</summary>
-        public string TelemetryTableName { get; set; } = "Telemetry";
+        public string TelemetryTableName { get; set; } = "telemetryd";
 
         /// <summary>Table the blob-triggered function writes image audit rows to.</summary>
         public string AuditTableName { get; set; } = "ImageAudit";
@@ -27,7 +27,7 @@ namespace AgriStream.Web.Options
         public string EventsTableName { get; set; } = "IrrigationEvents";
 
         /// <summary>Storage queue carrying irrigation commands to the queue-triggered function.</summary>
-        public string QueueName { get; set; } = "irrigation-commands";
+        public string QueueName { get; set; } = "irrigation-queue";
 
         /// <summary>Fully-qualified URL (incl. function key) of the HTTP GET telemetry function.</summary>
         public string TelemetryFunctionUrl { get; set; } = string.Empty;
