@@ -1,9 +1,3 @@
--- ============================================================================
--- AgriStream IoT - Azure SQL Database schema
--- Run against your Azure SQL database (Query Editor in the portal, SSMS, or sqlcmd).
--- NOTE: The web app also creates/seeds these tables automatically on startup,
---       so this script is provided for manual setup and evidence purposes.
--- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- Users: login credentials + role membership (task b)

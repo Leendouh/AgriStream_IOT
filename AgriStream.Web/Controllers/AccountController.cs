@@ -36,7 +36,17 @@ namespace AgriStream.Web.Controllers
                 return View(model);
             }
 
-            var user = await _sql.ValidateUserAsync(model.Username, model.Password);
+            AppUser? user;
+            try
+            {
+                user = await _sql.ValidateUserAsync(model.Username, model.Password);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "SQL login validation failed.");
+                ModelState.AddModelError("", "Could not reach the database: " + ex.Message);
+                return View(model);
+            }
             if (user is null)
             {
                 ModelState.AddModelError("", "Invalid username or password.");

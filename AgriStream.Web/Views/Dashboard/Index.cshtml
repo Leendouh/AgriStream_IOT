@@ -1,6 +1,8 @@
 @model DashboardViewModel
 @{
     ViewData["Title"] = "Field Dashboard";
+    var irrigating = Model.Devices.Count(d => d.Status == "Irrigating");
+    var lastReading = Model.Telemetry.Count > 0 ? Model.Telemetry.Max(t => t.Timestamp) : (DateTimeOffset?)null;
 }
 
 <div class="d-flex justify-content-between align-items-center">
@@ -13,22 +15,49 @@
     <div class="alert @(Model.MessageIsError ? "alert-danger" : "alert-success")">@Model.Message</div>
 }
 
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">@Model.Devices.Count</div>
+            <div class="stat-label">Registered devices</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">@irrigating</div>
+            <div class="stat-label">Currently irrigating</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">@Model.Telemetry.Count</div>
+            <div class="stat-label">Recent readings</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">@(lastReading?.ToString("HH:mm:ss") ?? "—")</div>
+            <div class="stat-label">Last reading (UTC)</div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-lg-7">
         <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between">
-                <span>📡 Latest Sensor Telemetry <small class="text-muted">(Azure Table Storage via HTTP GET Function)</small></span>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Latest Sensor Telemetry <small class="text-muted">(Azure Table Storage via HTTP GET Function)</small></span>
                 <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Refresh</a>
             </div>
             <div class="card-body p-0">
-                <table class="table table-sm table-striped mb-0">
+                <table class="table table-sm table-striped table-hover mb-0">
                     <thead>
                         <tr><th>Device</th><th>Time (UTC)</th><th>Moisture %</th><th>Temp °C</th><th>Humidity %</th><th>Battery %</th></tr>
                     </thead>
                     <tbody>
                     @if (Model.Telemetry.Count == 0)
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-3">No telemetry yet - push readings from the Telemetry page.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-3">No telemetry yet — push readings from the Telemetry page.</td></tr>
                     }
                     @foreach (var t in Model.Telemetry)
                     {
@@ -53,9 +82,9 @@
 
     <div class="col-lg-5">
         <div class="card mb-3">
-            <div class="card-header">💧 Irrigation Control <small class="text-muted">(HTTP POST Function → Queue → SQL)</small></div>
+            <div class="card-header">Irrigation Control <small class="text-muted">(HTTP POST Function → Queue → SQL)</small></div>
             <div class="card-body p-0">
-                <table class="table table-sm table-striped mb-0">
+                <table class="table table-sm table-striped table-hover mb-0">
                     <thead>
                         <tr><th>Device</th><th>Location</th><th>Status</th><th></th></tr>
                     </thead>
@@ -94,7 +123,7 @@
         </div>
         <div class="alert alert-info">
             <strong>Pipeline:</strong> clicking <em>Irrigate</em> calls the HTTP POST function → command lands on the
-            <code>irrigation-commands</code> queue → the queue-triggered function updates this device's status in Azure SQL.
+            <code>irrigation-queue</code> queue → the queue-triggered function updates this device's status in Azure SQL.
             Refresh after a few seconds to see the new status.
         </div>
     </div>

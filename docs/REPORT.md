@@ -3,8 +3,8 @@
 > Paste this content into your MS-Word submission document, replace the
 > placeholders, and insert the screenshots listed in §4 at the indicated points.
 
-**Student number:** `<your student number>`
-**Application URL:** `https://<st123456>.azurewebsites.net`
+**Student number:** `10381088`
+**Application URL:** `https://10381088.azurewebsites.net` *(once deployed)*
 **Source code:** `<link to your repo / zip folder>`
 
 ---
@@ -20,7 +20,7 @@
                             ▼         ▼          ▼          ▼
                     ┌───────────┐ ┌────────┐ ┌────────┐ ┌──────────────────┐
                     │ Azure SQL │ │ Blob   │ │ Table  │ │ Azure Function   │
-                    │  Users +  │ │ drone- │ │Telemetry│ │ App (Consumption)│
+                    │  Users +  │ │ drone- │ │telemetryd│ │ App (Consumption)│
                     │  Device-  │ │ images │ │ImageAudit│ │  4 functions    │
                     │  Registry │ │        │ │IrrigEvents│ │                 │
                     └─────▲─────┘ └───┬────┘ └───▲────┘ └──┬───┬───┬───┬────┘
@@ -31,8 +31,8 @@
                           │           HTTP GET (telemetry) ◄───────┘   │
                           │           HTTP POST (irrigation) ──┐       │
                           │                                    ▼       │
-                          │                              Queue: irrig- │
-                          │                              commands      │
+                          │                          Queue: irrigation-│
+                          │                                   queue    │
                           │                                    │       │
                           └───── UPDATE DeviceRegistry ◄─ QueueTrigger ┘
 ```
@@ -51,12 +51,13 @@ the whole pipeline.
 ### (a) Web hosting — Azure App Service
 `AgriStream.Web`, an ASP.NET Core 8 MVC application, is deployed to an Azure
 App Service on a Standard S1 App Service plan at
-`https://<st123456>.azurewebsites.net`. It serves the public landing page,
+`https://10381088.azurewebsites.net`. It serves the public landing page,
 cookie-authenticated login, the farmer dashboard, telemetry, drone imagery and
 admin pages.
 
 ### (b) Relational database — Azure SQL Database
-Database `agristreamdb` on server `sql-agristream-<st123456>` holds:
+Database `agristream` on server `agristream111` (South Africa North, Basic tier)
+holds:
 
 - `Users(Id, Username, PasswordHash, Salt, Role)` — login credentials with
   salted SHA-256 passwords and roles `Farmer`, `Agronomist`, `Admin`.
@@ -68,20 +69,22 @@ Schema script: `sql/schema.sql` (also auto-created + seeded by the app).
 ### (c) Cloud storage — Azure Storage
 - **Blob Storage** — container `drone-images`; uploads from the *Drone Imagery*
   page land here (private access).
-- **Table Storage** — `Telemetry` (sensor readings, `PartitionKey` = device id,
+- **Table Storage** — `telemetryd` (sensor readings, `PartitionKey` = device id,
   inverted-tick `RowKey` so newest reads first), `ImageAudit` (written by the
   blob function), `IrrigationEvents` (written by the queue function).
-- **Queue Storage** — `irrigation-commands` decouples the web app from device
+- **Queue Storage** — `irrigation-queue` decouples the web app from device
   command processing.
+
+Storage account: `agristreamst10381088` (Standard performance, LRS redundancy).
 
 ### (d) Serverless data pipeline — four Azure Functions (.NET 8 isolated)
 
 | Function | Trigger | What it does |
 |---|---|---|
 | `DroneImageAuditFunction` | **Blob** (`drone-images/{name}`) | Logs the upload and writes a status audit row to the `ImageAudit` table. |
-| `GetTelemetryFunction` | **HTTP GET** (`/api/telemetry`) | Reads latest telemetry from the `Telemetry` table, returns JSON for the dashboard. |
-| `QueueIrrigationFunction` | **HTTP POST** (`/api/irrigation`) | Validates an irrigation command and enqueues it on `irrigation-commands`. |
-| `ProcessIrrigationFunction` | **Queue** (`irrigation-commands`) | Updates the device status to `Irrigating` in SQL `DeviceRegistry` and logs an `IrrigationEvents` row. |
+| `GetTelemetryFunction` | **HTTP GET** (`/api/telemetry`) | Reads latest telemetry from the `telemetryd` table, returns JSON for the dashboard. |
+| `QueueIrrigationFunction` | **HTTP POST** (`/api/irrigation`) | Validates an irrigation command and enqueues it on `irrigation-queue`. |
+| `ProcessIrrigationFunction` | **Queue** (`irrigation-queue`) | Updates the device status to `Irrigating` in SQL `DeviceRegistry` and logs an `IrrigationEvents` row. |
 
 ### (e) Load testing
 `scripts/LoadTest.ps1` fired `<N>` requests at the deployed site with `<C>`
@@ -123,9 +126,9 @@ During the load test, run history showed scale-out from 1 → `<n>` instances at
 3. Deployed web app: landing page, login page, dashboard with data.
 4. SQL database Overview + Query Editor showing `SELECT * FROM Users` and
    `DeviceRegistry` rows.
-5. Storage account: `drone-images` container with blobs; `Telemetry`,
-   `ImageAudit`, `IrrigationEvents` tables (Storage Browser); queue with
-   message count.
+5. Storage account `agristreamst10381088`: `drone-images` container with
+   blobs; `telemetryd`, `ImageAudit`, `IrrigationEvents` tables (Storage
+   Browser); `irrigation-queue` with message count.
 6. Function App → Functions list showing all four functions; one invocation
    log each (Monitor blade).
 7. Drone Imagery page showing a blob + its audit row (proves blob trigger).
@@ -211,7 +214,7 @@ in the bound storage resources (tables, queues, blobs, SQL).
 |---|---|---|---|
 | **Definition** | The event/condition that causes a function execution and supplies the triggering payload. Exactly **one** trigger per function. | A declarative connection that **reads** data from another Azure resource into the function, without writing SDK code. | A declarative connection that **writes** data from the function to another resource. |
 | **Purpose** | Start execution — schedule, HTTP call, new blob, new queue message, etc. | Fetch contextual/secondary data the function needs (e.g. a table row or blob) alongside the trigger payload. | Emit results — write rows, send queue messages, create blobs — just by returning values/setting properties. |
-| **AgriStream example** | `DroneImageAuditFunction` fires on every new blob in `drone-images`; `GetTelemetryFunction`/`QueueIrrigationFunction` fire on HTTP requests; `ProcessIrrigationFunction` fires on `irrigation-commands` queue messages. | Equivalent role: the GET function **reads** the `Telemetry` table (implemented with the `Azure.Data.Tables` SDK inside the function; a `[TableInput]` input binding is the declarative alternative). | Equivalent role: the audit row written to `ImageAudit`, the message placed on `irrigation-commands`, and the `DeviceRegistry` update (implemented via SDK writes; `[TableOutput]`/`[QueueOutput]` attributes are the declarative alternative). |
+| **AgriStream example** | `DroneImageAuditFunction` fires on every new blob in `drone-images`; `GetTelemetryFunction`/`QueueIrrigationFunction` fire on HTTP requests; `ProcessIrrigationFunction` fires on `irrigation-queue` queue messages. | Equivalent role: the GET function **reads** the `telemetryd` table (implemented with the `Azure.Data.Tables` SDK inside the function; a `[TableInput]` input binding is the declarative alternative). | Equivalent role: the audit row written to `ImageAudit`, the message placed on `irrigation-queue`, and the `DeviceRegistry` update (implemented via SDK writes; `[TableOutput]`/`[QueueOutput]` attributes are the declarative alternative). |
 
 **Key differences:** a trigger is mandatory and singular — it *causes* the run.
 Bindings are optional helpers that *move data in or out* during the run. In the
