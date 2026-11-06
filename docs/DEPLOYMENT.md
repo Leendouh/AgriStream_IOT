@@ -192,5 +192,6 @@ az storage queue create -n irrigation-commands --account-name stagristreamst1234
 az functionapp create -n func-agristream-st123456 -g rg-agristream --consumption-plan-location westeurope \
   --runtime dotnet-isolated --runtime-version 8 --functions-version 4 --storage-account stagristreamst123456
 az appservice plan create -n asp-agristream -g rg-agristream --sku S1
-az webapp create -n st123456 -g rg-agristream -p asp-agristream --runtime "DOTNET:8"
+az webapp create -n st123456 -g rg-agristream -p asp-agristream --runtime "dotnet:8"
+# (if the identifier fails, run `az webapp list-runtimes --os-type windows` for the exact name)
 ```

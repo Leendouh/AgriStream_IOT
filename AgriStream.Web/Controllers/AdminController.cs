@@ -21,8 +21,15 @@ namespace AgriStream.Web.Controllers
                 TempData["Error"] = "Azure SQL is not configured. Set Azure:SqlConnectionString.";
                 return View(vm);
             }
-            vm.Users = await _sql.GetUsersAsync();
-            vm.Devices = await _sql.GetDevicesAsync();
+            try
+            {
+                vm.Users = await _sql.GetUsersAsync();
+                vm.Devices = await _sql.GetDevicesAsync();
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Could not read Azure SQL: " + ex.Message;
+            }
             return View(vm);
         }
     }

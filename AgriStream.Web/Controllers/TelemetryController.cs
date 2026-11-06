@@ -49,16 +49,24 @@ namespace AgriStream.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            await _storage.AddTelemetryAsync(new TelemetryReading
+            try
             {
-                DeviceId = model.DeviceId.Trim().ToUpperInvariant(),
-                Timestamp = DateTimeOffset.UtcNow,
-                SoilMoisture = model.SoilMoisture,
-                TemperatureC = model.TemperatureC,
-                Humidity = model.Humidity,
-                BatteryLevel = model.BatteryLevel,
-            });
-            TempData["Message"] = $"Telemetry from {model.DeviceId} written to Azure Table Storage.";
+                await _storage.AddTelemetryAsync(new TelemetryReading
+                {
+                    DeviceId = model.DeviceId.Trim().ToUpperInvariant(),
+                    Timestamp = DateTimeOffset.UtcNow,
+                    SoilMoisture = model.SoilMoisture,
+                    TemperatureC = model.TemperatureC,
+                    Humidity = model.Humidity,
+                    BatteryLevel = model.BatteryLevel,
+                });
+                TempData["Message"] = $"Telemetry from {model.DeviceId} written to Azure Table Storage.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Telemetry ingest failed.");
+                TempData["Error"] = "Could not write telemetry: " + ex.Message;
+            }
             return RedirectToAction(nameof(Index));
         }
 
@@ -71,7 +79,15 @@ namespace AgriStream.Web.Controllers
 
             reading.DeviceId = reading.DeviceId.Trim().ToUpperInvariant();
             if (reading.Timestamp == default) reading.Timestamp = DateTimeOffset.UtcNow;
-            await _storage.AddTelemetryAsync(reading);
+            try
+            {
+                await _storage.AddTelemetryAsync(reading);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "API telemetry ingest failed.");
+                return StatusCode(503, new { error = "Storage unavailable: " + ex.Message });
+            }
             return Accepted(new { status = "stored", reading.DeviceId });
         }
     }

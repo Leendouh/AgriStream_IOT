@@ -53,7 +53,9 @@ namespace AgriStream.Web.Controllers
                 new ClaimsPrincipal(identity));
 
             _logger.LogInformation("User {User} logged in with role {Role}.", user.Username, user.Role);
-            return LocalRedirect(returnUrl ?? Url.Action("Index", "Dashboard")!);
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return LocalRedirect(returnUrl);
+            return RedirectToAction("Index", "Dashboard");
         }
 
         [HttpPost, ValidateAntiForgeryToken]
