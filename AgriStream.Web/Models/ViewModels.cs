@@ -29,7 +29,6 @@ namespace AgriStream.Web.Models
     public class BlobItemInfo
     {
         public string Name { get; set; } = string.Empty;
-        public string Uri { get; set; } = string.Empty;
         public long SizeBytes { get; set; }
         public DateTimeOffset? LastModified { get; set; }
     }

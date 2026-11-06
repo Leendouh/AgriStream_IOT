@@ -65,7 +65,7 @@
                             <td><code>@t.DeviceId</code></td>
                             <td>@t.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td>
-                                <span class="badge @(t.SoilMoisture < 25 ? "bg-danger" : t.SoilMoisture < 40 ? "bg-warning text-dark" : "bg-success")">
+                                <span class="badge @(t.SoilMoisture < 25 ? "bg-danger" : t.SoilMoisture < 40 ? "bg-warning text-dark" : "badge-ok")">
                                     @t.SoilMoisture.ToString("F1")
                                 </span>
                             </td>

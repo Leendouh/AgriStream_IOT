@@ -9,7 +9,7 @@ namespace AgriStream.Functions.Functions
 {
     /// <summary>
     /// HTTP POST TRIGGER - accepts an irrigation command from the MVC app (or a sensor),
-    /// validates it and places the message on the "irrigation-commands" Storage Queue.
+    /// validates it and places the message on the "irrigation-queue" Storage Queue.
     /// Route: POST /api/irrigation   Body: { "deviceId": "PUMP-01", "durationSeconds": 60, "requestedBy": "farmer" }
     /// </summary>
     public class QueueIrrigationFunction

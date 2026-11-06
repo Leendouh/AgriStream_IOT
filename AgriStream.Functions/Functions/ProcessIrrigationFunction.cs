@@ -22,7 +22,7 @@ namespace AgriStream.Functions.Functions
 
         [Function(nameof(ProcessIrrigationFunction))]
         public async Task Run(
-            [QueueTrigger("irrigation-commands", Connection = "AzureWebJobsStorage")] string message)
+            [QueueTrigger("irrigation-queue", Connection = "AzureWebJobsStorage")] string message)
         {
             var command = ParseMessage(message);
             if (command is null)

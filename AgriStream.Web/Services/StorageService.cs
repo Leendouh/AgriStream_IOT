@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using AgriStream.Web.Models;
 using AgriStream.Web.Options;
-using Azure;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -68,7 +67,6 @@ namespace AgriStream.Web.Services
                 items.Add(new BlobItemInfo
                 {
                     Name = b.Name,
-                    Uri = container.GetBlobClient(b.Name).Uri.ToString(),
                     SizeBytes = b.Properties.ContentLength ?? 0,
                     LastModified = b.Properties.LastModified,
                 });

@@ -6,89 +6,89 @@
     <title>@ViewData["Title"] - AgriStream IoT</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/AgriStream.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark agri-nav border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">AgriStream IoT</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Telemetry" asp-action="Index">Telemetry</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Media" asp-action="Index">Drone Imagery</a>
-                            </li>
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Admin" asp-action="Index">Admin</a>
-                                </li>
-                            }
-                        }
-                    </ul>
-                    <ul class="navbar-nav">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <span class="nav-link">@User.Identity.Name <span class="badge bg-light text-dark">@(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)</span></span>
-                            </li>
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="form-inline">
-                                    <button type="submit" class="btn btn-link nav-link">Logout</button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">Login</a>
-                            </li>
-                        }
-                    </ul>
-                </div>
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    }
+    <div class="app-shell">
+        <div class="mobile-bar d-lg-none">
+            <a class="mobile-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="brand-dot"></span>AgriStream IoT
+            </a>
+            <button class="sidebar-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#appSidebar"
+                    aria-controls="appSidebar" aria-expanded="false" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+
+        <aside class="app-sidebar collapse d-lg-flex" id="appSidebar">
+            <a class="sidebar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="brand-dot"></span>AgriStream IoT
+            </a>
+            <nav class="sidebar-nav">
+                <a class="side-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">Home</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="side-link @(currentController == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                    <a class="side-link @(currentController == "Telemetry" ? "active" : "")" asp-controller="Telemetry" asp-action="Index">Telemetry</a>
+                    <a class="side-link @(currentController == "Media" ? "active" : "")" asp-controller="Media" asp-action="Index">Drone Imagery</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a class="side-link @(currentController == "Admin" ? "active" : "")" asp-controller="Admin" asp-action="Index">Admin</a>
+                    }
+                }
+                else
+                {
+                    <a class="side-link @(currentController == "Account" ? "active" : "")" asp-controller="Account" asp-action="Login">Sign in</a>
+                }
+            </nav>
+            <div class="sidebar-footer">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="sidebar-user">
+                        <span>@User.Identity.Name</span>
+                        <span class="role-badge">@(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)</span>
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="btn-logout">Sign out</button>
+                    </form>
+                }
+                else
+                {
+                    <span>Smart farm monitoring on Azure</span>
+                }
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        @if (TempData["Message"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @TempData["Message"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </aside>
+
+        <div class="app-main">
+            <div class="app-content">
+                @if (TempData["Message"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @TempData["Message"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                <main role="main" class="pb-3">
+                    @RenderBody()
+                </main>
             </div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        }
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+            <footer class="app-footer">
+                &copy; 2026 - AgriStream IoT - Smart Farm Monitoring on Azure
+            </footer>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - AgriStream IoT - Smart Farm Monitoring on Azure
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
