@@ -1,0 +1,25 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="hero text-center text-light p-5 rounded mb-4">
+    <h1 class="display-4">🌾 AgriStream IoT</h1>
+    <p class="lead">Real-time smart monitoring for large-scale commercial farms.</p>
+    <p>Soil telemetry, drone imagery and automated irrigation - powered by Azure App Service, Azure Functions, Azure SQL and Azure Storage.</p>
+    <a class="btn btn-light btn-lg" asp-controller="Account" asp-action="Login">Sign in to your dashboard</a>
+</div>
+
+<div class="row text-center">
+    <div class="col-md-4">
+        <h4>📡 Live Telemetry</h4>
+        <p>Millions of soil sensor readings streamed into Azure Table Storage and rendered near-instantly via an HTTP GET Azure Function.</p>
+    </div>
+    <div class="col-md-4">
+        <h4>🚁 Drone Imagery</h4>
+        <p>High-resolution aerial uploads land in Azure Blob Storage, where a blob-triggered function audits every file.</p>
+    </div>
+    <div class="col-md-4">
+        <h4>💧 Smart Irrigation</h4>
+        <p>One click queues an irrigation command; a queue-triggered function updates the device registry in Azure SQL.</p>
+    </div>
+</div>

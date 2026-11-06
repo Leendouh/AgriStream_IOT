@@ -1,0 +1,52 @@
+@model MediaViewModel
+@{
+    ViewData["Title"] = "Drone Imagery";
+}
+
+<div class="d-flex justify-content-between align-items-center">
+    <h2>🚁 Drone Imagery</h2>
+    <a asp-action="Upload" class="btn btn-success">Upload drone image</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <h5>Blob Storage <small class="text-muted">(container: <code>drone-images</code>)</small></h5>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Blob</th><th>Size</th><th>Uploaded (UTC)</th></tr></thead>
+            <tbody>
+            @if (Model.Images.Count == 0)
+            {
+                <tr><td colspan="3" class="text-center text-muted py-3">No drone images uploaded yet.</td></tr>
+            }
+            @foreach (var img in Model.Images)
+            {
+                <tr>
+                    <td><code>@img.Name</code></td>
+                    <td>@((img.SizeBytes / 1024.0).ToString("F1")) KB</td>
+                    <td>@img.LastModified?.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-5">
+        <h5>Processing audit <small class="text-muted">(written by the blob-triggered function to <code>ImageAudit</code> table)</small></h5>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Blob</th><th>Status</th><th>Time (UTC)</th></tr></thead>
+            <tbody>
+            @if (Model.AuditEntries.Count == 0)
+            {
+                <tr><td colspan="3" class="text-center text-muted py-3">No audit entries yet - upload an image and wait a few seconds.</td></tr>
+            }
+            @foreach (var a in Model.AuditEntries)
+            {
+                <tr>
+                    <td><code>@a.BlobName</code></td>
+                    <td><span class="badge bg-info text-dark">@a.Status</span></td>
+                    <td>@a.UploadedAt.ToString("MM-dd HH:mm:ss")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

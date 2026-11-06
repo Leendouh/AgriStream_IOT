@@ -1,0 +1,67 @@
+@model TelemetryViewModel
+@{
+    ViewData["Title"] = "Telemetry";
+}
+
+<h2>📡 Sensor Telemetry</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Simulate a sensor reading</div>
+            <div class="card-body">
+                <form asp-action="Ingest" method="post">
+                    <div class="mb-2">
+                        <label asp-for="DeviceId" class="form-label"></label>
+                        <input asp-for="DeviceId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="SoilMoisture" class="form-label"></label>
+                        <input asp-for="SoilMoisture" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TemperatureC" class="form-label"></label>
+                        <input asp-for="TemperatureC" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Humidity" class="form-label"></label>
+                        <input asp-for="Humidity" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="BatteryLevel" class="form-label"></label>
+                        <input asp-for="BatteryLevel" class="form-control" type="number" step="0.1" />
+                    </div>
+                    <button class="btn btn-success w-100">Push to Table Storage</button>
+                </form>
+            </div>
+        </div>
+        <small class="text-muted">
+            Sensors can also POST JSON to <code>/api/telemetry</code> anonymously - see <code>scripts/Send-Telemetry.ps1</code>.
+        </small>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Newest readings <small class="text-muted">(Azure Table Storage, <code>Telemetry</code> table)</small></div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr><th>Device</th><th>Time (UTC)</th><th>Moisture %</th><th>Temp °C</th><th>Humidity %</th><th>Battery %</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var t in Model.Readings)
+                    {
+                        <tr>
+                            <td><code>@t.DeviceId</code></td>
+                            <td>@t.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@t.SoilMoisture.ToString("F1")</td>
+                            <td>@t.TemperatureC.ToString("F1")</td>
+                            <td>@t.Humidity.ToString("F1")</td>
+                            <td>@t.BatteryLevel.ToString("F0")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

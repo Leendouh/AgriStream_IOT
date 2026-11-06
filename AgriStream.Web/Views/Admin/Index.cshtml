@@ -1,0 +1,44 @@
+@model AdminViewModel
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<h2>⚙️ Administration</h2>
+
+<div class="row">
+    <div class="col-lg-5">
+        <h5>User accounts <small class="text-muted">(Azure SQL <code>Users</code> table)</small></h5>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>#</th><th>Username</th><th>Role</th></tr></thead>
+            <tbody>
+            @foreach (var u in Model.Users)
+            {
+                <tr>
+                    <td>@u.Id</td>
+                    <td>@u.Username</td>
+                    <td><span class="badge @(u.Role == "Admin" ? "bg-danger" : u.Role == "Agronomist" ? "bg-info text-dark" : "bg-success")">@u.Role</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-7">
+        <h5>Device registry <small class="text-muted">(Azure SQL <code>DeviceRegistry</code> table)</small></h5>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Device</th><th>Name</th><th>Type</th><th>Location</th><th>Status</th><th>Last command</th></tr></thead>
+            <tbody>
+            @foreach (var d in Model.Devices)
+            {
+                <tr>
+                    <td><code>@d.DeviceId</code></td>
+                    <td>@d.Name</td>
+                    <td>@d.DeviceType</td>
+                    <td>@d.Location</td>
+                    <td>@d.Status</td>
+                    <td>@d.LastCommandAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

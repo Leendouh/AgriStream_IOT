@@ -1,0 +1,101 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Field Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Field Dashboard</h2>
+    <small class="text-muted">Telemetry source: <strong>@Model.TelemetrySource</strong></small>
+</div>
+
+@if (Model.Message != null)
+{
+    <div class="alert @(Model.MessageIsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <span>📡 Latest Sensor Telemetry <small class="text-muted">(Azure Table Storage via HTTP GET Function)</small></span>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Refresh</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr><th>Device</th><th>Time (UTC)</th><th>Moisture %</th><th>Temp °C</th><th>Humidity %</th><th>Battery %</th></tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Telemetry.Count == 0)
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-3">No telemetry yet - push readings from the Telemetry page.</td></tr>
+                    }
+                    @foreach (var t in Model.Telemetry)
+                    {
+                        <tr>
+                            <td><code>@t.DeviceId</code></td>
+                            <td>@t.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>
+                                <span class="badge @(t.SoilMoisture < 25 ? "bg-danger" : t.SoilMoisture < 40 ? "bg-warning text-dark" : "bg-success")">
+                                    @t.SoilMoisture.ToString("F1")
+                                </span>
+                            </td>
+                            <td>@t.TemperatureC.ToString("F1")</td>
+                            <td>@t.Humidity.ToString("F1")</td>
+                            <td>@t.BatteryLevel.ToString("F0")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header">💧 Irrigation Control <small class="text-muted">(HTTP POST Function → Queue → SQL)</small></div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr><th>Device</th><th>Location</th><th>Status</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Devices.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-3">No devices in the registry yet.</td></tr>
+                    }
+                    @foreach (var d in Model.Devices)
+                    {
+                        <tr>
+                            <td><code>@d.DeviceId</code><br /><small>@d.Name</small></td>
+                            <td>@d.Location</td>
+                            <td>
+                                <span class="badge @(d.Status == "Irrigating" ? "bg-primary" : d.Status == "Offline" ? "bg-danger" : "bg-secondary")">
+                                    @d.Status
+                                </span>
+                                @if (d.LastCommandAt != null)
+                                {
+                                    <br /><small class="text-muted">@d.LastCommandAt?.ToString("MM-dd HH:mm")</small>
+                                }
+                            </td>
+                            <td>
+                                <form asp-controller="Irrigation" asp-action="Trigger" method="post">
+                                    <input type="hidden" name="deviceId" value="@d.DeviceId" />
+                                    <button class="btn btn-sm btn-outline-primary" title="Queue irrigation command">
+                                        Irrigate
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <strong>Pipeline:</strong> clicking <em>Irrigate</em> calls the HTTP POST function → command lands on the
+            <code>irrigation-commands</code> queue → the queue-triggered function updates this device's status in Azure SQL.
+            Refresh after a few seconds to see the new status.
+        </div>
+    </div>
+</div>
