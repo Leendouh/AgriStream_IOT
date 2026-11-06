@@ -8,7 +8,7 @@
     CPU up so the App Service auto-scale rule can be observed in Azure Monitor.
 
 .EXAMPLE
-    .\LoadTest.ps1 -BaseUrl "https://agristream-st123456.azurewebsites.net" -TotalRequests 2000 -Concurrency 40
+    .\LoadTest.ps1 -BaseUrl "https://st123456.azurewebsites.net" -TotalRequests 2000 -Concurrency 40
 #>
 param(
     [Parameter(Mandatory = $true)][string]$BaseUrl,
@@ -19,17 +19,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 $BaseUrl = $BaseUrl.TrimEnd('/')
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
 
 Write-Host "Load testing $BaseUrl$Path - $TotalRequests requests, $Concurrency concurrent..." -ForegroundColor Cyan
 
-# Shared result buckets (thread-safe)
-$results  = [System.Collections.Concurrent.ConcurrentBag[double]]::new()
-$failures = [System.Collections.Concurrent.ConcurrentBag[string]]::new()
-$remaining = $TotalRequests
-
+# Each worker measures its own share and returns result objects via the pipeline.
 $scriptBlock = {
-    param($Url, $Count, $Results, $Failures)
+    param($Url, $Count)
+    Add-Type -AssemblyName System.Net.Http   # needed in PS 5.1 job runspaces
     $client = [System.Net.Http.HttpClient]::new()
     $client.Timeout = [TimeSpan]::FromSeconds(60)
     for ($i = 0; $i -lt $Count; $i++) {
@@ -37,53 +33,62 @@ $scriptBlock = {
         try {
             $resp = $client.GetAsync($Url).Result
             $t.Stop()
-            if ($resp.IsSuccessStatusCode) { $Results.Add($t.Elapsed.TotalMilliseconds) }
-            else { $Failures.Add("HTTP $([int]$resp.StatusCode)") }
+            [pscustomobject]@{
+                Ms  = $t.Elapsed.TotalMilliseconds
+                Err = if ($resp.IsSuccessStatusCode) { $null } else { "HTTP $([int]$resp.StatusCode)" }
+            }
         } catch {
             $t.Stop()
-            $Failures.Add($_.Exception.InnerException?.Message ?? $_.Exception.Message)
+            [pscustomobject]@{ Ms = $t.Elapsed.TotalMilliseconds; Err = $_.Exception.Message }
         }
     }
     $client.Dispose()
 }
 
-# Split work across jobs (batches of Concurrency workers)
 $perWorker = [Math]::Ceiling($TotalRequests / $Concurrency)
-$jobs = @()
-for ($w = 0; $w -lt $Concurrency -and $remaining -gt 0; $w++) {
+$remaining = $TotalRequests
+$jobs = for ($w = 0; $w -lt $Concurrency -and $remaining -gt 0; $w++) {
     $take = [Math]::Min($perWorker, $remaining)
     $remaining -= $take
-    $jobs += Start-Job -ScriptBlock $scriptBlock -ArgumentList "$BaseUrl$Path", $take, $results, $failures
+    Start-Job -ScriptBlock $scriptBlock -ArgumentList "$BaseUrl$Path", $take
 }
 
-$jobs | Wait-Job | Out-Null
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+while (($jobs | Where-Object State -eq 'Running').Count -gt 0) {
+    $done = ($jobs | Where-Object State -ne 'Running').Count
+    Write-Progress -Activity "Load test running" -Status "$done/$($jobs.Count) workers finished" `
+        -PercentComplete (100 * $done / $jobs.Count)
+    Start-Sleep -Seconds 3
+}
 $sw.Stop()
-$jobs | Receive-Job | Out-Null   # surface any worker errors
+Write-Progress -Activity "Load test running" -Completed
+
+$data = @($jobs | Receive-Job)
 $jobs | Remove-Job
 
-$ok = $results.Count
-$times = @($results | Sort-Object)
-if ($ok -gt 0) {
-    $avg = ($times | Measure-Object -Average).Average
-    $p50 = $times[[Math]::Floor($ok * 0.50)]
-    $p95 = $times[[Math]::Floor($ok * 0.95)]
-    $max = $times[-1]
-}
+$ok    = @($data | Where-Object { $null -eq $_.Err })
+$times = @($ok.Ms | Sort-Object)
+$fail  = @($data | Where-Object { $null -ne $_.Err })
 
 Write-Host ""
 Write-Host "================ LOAD TEST RESULTS ================" -ForegroundColor Green
 Write-Host ("Target            : {0}{1}" -f $BaseUrl, $Path)
 Write-Host ("Duration          : {0:N1}s" -f $sw.Elapsed.TotalSeconds)
-Write-Host ("Successful        : {0} / {1}" -f $ok, $TotalRequests)
-Write-Host ("Failed            : {0}" -f $failures.Count)
-Write-Host ("Throughput        : {0:N1} req/s" -f ($ok / $sw.Elapsed.TotalSeconds))
-if ($ok -gt 0) {
-    Write-Host ("Avg latency       : {0:N0} ms" -f $avg)
-    Write-Host ("p50 / p95 / max   : {0:N0} / {1:N0} / {2:N0} ms" -f $p50, $p95, $max)
+Write-Host ("Successful        : {0} / {1}" -f $ok.Count, $TotalRequests)
+Write-Host ("Failed            : {0}" -f $fail.Count)
+if ($sw.Elapsed.TotalSeconds -gt 0) {
+    Write-Host ("Throughput        : {0:N1} req/s" -f ($ok.Count / $sw.Elapsed.TotalSeconds))
 }
-if ($failures.Count -gt 0) {
+if ($times.Count -gt 0) {
+    Write-Host ("Avg latency       : {0:N0} ms" -f ($times | Measure-Object -Average).Average)
+    Write-Host ("p50 / p95 / max   : {0:N0} / {1:N0} / {2:N0} ms" -f `
+        $times[[Math]::Floor($times.Count * 0.50)], `
+        $times[[Math]::Floor($times.Count * 0.95)], `
+        $times[-1])
+}
+if ($fail.Count -gt 0) {
     Write-Host "Failure samples:" -ForegroundColor Yellow
-    $failures | Select-Object -First 5 | ForEach-Object { Write-Host "  $_" }
+    $fail | Select-Object -First 5 | ForEach-Object { Write-Host "  $($_.Err)" }
 }
 Write-Host "===================================================="
-Write-Host "TIP: Watch App Service > Metrics (CPU %) and your autoscale history in the Azure portal while this runs."
+Write-Host "TIP: Watch App Service > Metrics (CPU %) and autoscale Run history in the Azure portal while this runs."
