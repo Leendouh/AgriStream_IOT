@@ -52,6 +52,8 @@ namespace AgriStream.Web.Services
                     UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
                 """;
 
+            await EnsureDatabaseExistsAsync();
+
             await using var conn = Open();
             await conn.OpenAsync();
             await using (var cmd = new SqlCommand(ddl, conn))
@@ -59,6 +61,37 @@ namespace AgriStream.Web.Services
 
             await SeedUsersAsync(conn);
             await SeedDevicesAsync(conn);
+        }
+
+        /// <summary>
+        /// Creates the database named in the connection string if it does not exist.
+        /// On Azure SQL the database is provisioned in the portal, so this is a no-op;
+        /// it matters for local dev (e.g. LocalDB) where nothing pre-creates it.
+        /// </summary>
+        private async Task EnsureDatabaseExistsAsync()
+        {
+            var csb = new SqlConnectionStringBuilder(_opts.SqlConnectionString);
+            var dbName = csb.InitialCatalog;
+            if (string.IsNullOrWhiteSpace(dbName)) return;
+
+            csb.InitialCatalog = "master";
+            try
+            {
+                await using var master = new SqlConnection(csb.ConnectionString);
+                await master.OpenAsync();
+
+                await using var cmd = new SqlCommand(
+                    $"IF DB_ID(@db) IS NULL CREATE DATABASE [{dbName}]", master);
+                cmd.Parameters.AddWithValue("@db", dbName);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                // Not fatal: on Azure SQL the database already exists and logins
+                // may not have permission to reach 'master'. Continue and let the
+                // normal connection attempt surface any real problem.
+                _logger.LogDebug(ex, "Could not verify/create database {Db}; continuing.", dbName);
+            }
         }
 
         private async Task SeedUsersAsync(SqlConnection conn)

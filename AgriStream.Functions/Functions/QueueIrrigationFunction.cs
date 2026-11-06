@@ -18,12 +18,17 @@ namespace AgriStream.Functions.Functions
 
         public QueueIrrigationFunction(ILogger<QueueIrrigationFunction> logger) => _logger = logger;
 
+        private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
+
         [Function(nameof(QueueIrrigationFunction))]
         public async Task<HttpResponseData> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "irrigation")] HttpRequestData req)
         {
-            var command = await JsonSerializer.DeserializeAsync<IrrigationCommand>(
-                req.Body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            var body = await new StreamReader(req.Body).ReadToEndAsync();
+            _logger.LogInformation("Irrigation request body ({Len} chars): {Body}", body?.Length ?? 0, body);
+
+            var command = string.IsNullOrWhiteSpace(body) ? null
+                : JsonSerializer.Deserialize<IrrigationCommand>(body, JsonOpts);
 
             if (command is null || string.IsNullOrWhiteSpace(command.DeviceId))
             {

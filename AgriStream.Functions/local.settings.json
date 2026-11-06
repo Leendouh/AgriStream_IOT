@@ -3,7 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "SqlConnectionString": "",
+    "SqlConnectionString": "Server=(localdb)\\MSSQLLocalDB;Database=AgriStreamDb;Trusted_Connection=True;TrustServerCertificate=True",
     "TelemetryTableName": "Telemetry",
     "AuditTableName": "ImageAudit",
     "EventsTableName": "IrrigationEvents",

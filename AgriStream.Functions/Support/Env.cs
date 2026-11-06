@@ -18,7 +18,12 @@ namespace AgriStream.Functions.Support
             Environment.GetEnvironmentVariable(name) ?? fallback;
 
         public static TableClient Table(string name) => new(StorageConn, name);
-        public static QueueClient Queue() => new(StorageConn, QueueName);
+
+        // Base64 message encoding is required by Azurite and accepted by real Azure
+        // Storage; ProcessIrrigationFunction decodes both forms defensively.
+        public static QueueClient Queue() => new(StorageConn, QueueName,
+            new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 });
+
         public static SqlConnection Sql() => new(SqlConn);
     }
 }
